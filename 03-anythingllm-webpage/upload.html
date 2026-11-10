@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AnythingLLM 文档上传</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 560px; margin: 60px auto; padding: 0 16px; }
+  h1 { font-size: 20px; }
+  label { display: block; margin: 16px 0 4px; font-size: 14px; color: #333; }
+  input[type=text], input[type=file] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px; }
+  button { margin-top: 20px; padding: 10px 24px; font-size: 15px; cursor: pointer; }
+  #result { margin-top: 24px; padding: 12px; background: #f5f5f5; border-radius: 6px; font-size: 13px; white-space: pre-wrap; word-break: break-all; display: none; }
+  .ok { color: #1a7f37; } .err { color: #cf222e; }
+</style>
+</head>
+<body>
+<h1>上传文档到 AnythingLLM（我的工作区）</h1>
+
+<label>API Key</label>
+<input type="text" id="key" placeholder="在此填入你的 AnythingLLM API Key" value="">
+
+<label>选择文档</label>
+<input type="file" id="file">
+
+<button id="btn">上传并向量化</button>
+
+<div id="result"></div>
+
+<script>
+const API = 'http://localhost:3001/api/v1';
+// 第一个工作区“我的工作区”的 slug
+const WORKSPACE = '424e83dd-1a96-47e4-91fe-b73bc415b6a5';
+
+document.getElementById('btn').onclick = async () => {
+  const file = document.getElementById('file').files[0];
+  const key = document.getElementById('key').value.trim();
+  const box = document.getElementById('result');
+  box.style.display = 'block';
+
+  if (!file) { box.className = 'err'; box.textContent = '请先选择文件'; return; }
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('addToWorkspaces', WORKSPACE);
+
+  box.className = '';
+  box.textContent = '上传中，等待解析与向量化嵌入…';
+
+  try {
+    const res = await fetch(API + '/document/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key },
+      body: fd
+    });
+    const data = await res.json();
+    if (res.ok && data.success !== false) {
+      box.className = 'ok';
+      box.textContent = '上传并向量化成功：\n' + JSON.stringify(data, null, 2);
+    } else {
+      box.className = 'err';
+      box.textContent = '失败：\n' + JSON.stringify(data, null, 2);
+    }
+  } catch (e) {
+    box.className = 'err';
+    box.textContent = '请求异常：' + e.message;
+  }
+};
+</script>
+</body>
+</html>
